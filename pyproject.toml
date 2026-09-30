@@ -1,0 +1,55 @@
+[build-system]
+# 1.27 is the first Hatchling release with PEP 639 license metadata (Metadata 2.4).
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "decisionlane"
+version = "0.1.0"
+description = "One small interface for zero-shot, single-label text classification with decision models."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Lucas Biagetti" }]
+requires-python = ">=3.10"
+dependencies = ["requests>=2.28"]
+keywords = ["classification", "zero-shot", "text-classification", "jev", "emissary"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Linguistic",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/lucasbiagettia/decisionlane"
+Issues = "https://github.com/lucasbiagettia/decisionlane/issues"
+Changelog = "https://github.com/lucasbiagettia/decisionlane/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "build>=1.2", "twine>=6.1"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/decisionlane"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/decisionlane",
+    "tests",
+    "README.md",
+    "CHANGELOG.md",
+    "RELEASING.md",
+    "LICENSE",
+    "pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

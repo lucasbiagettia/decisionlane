@@ -1,0 +1,11 @@
+{
+  "evidence": "SIMULATED offline fixture shaped after the Emissary experiment/classification contract; not a provider observation",
+  "cases": {"sports": "Sports and competitions", "finance": "Money, banking, and investments", "cooking": "Recipes and food"},
+  "experiment_response": {"id": "ex-test", "latest_version": "0.0.0"},
+  "classification_response": {
+    "id": "classify-test-123",
+    "model": "ex-test/0.0.0",
+    "data": [{"index": 0, "probs": {"sports": 0.09, "finance": 0.86, "cooking": 0.05}}],
+    "created": 1780085360
+  }
+}
