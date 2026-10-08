@@ -25,6 +25,7 @@ jobs:
         env:
           JEV_TOKEN: ""
           EMISSARY_API_KEY: ""
+          OPENAI_API_KEY: ""
         run: python -m pytest
       - name: Build and check distributions
         if: matrix.python-version == '3.12'

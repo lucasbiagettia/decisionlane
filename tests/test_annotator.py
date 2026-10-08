@@ -8,7 +8,7 @@ from typing import Mapping
 import pytest
 
 from decisionlane import Annotator, Decision, DecisionModel, ResponseError
-from decisionlane.backends import Emissary, Jev
+from decisionlane.backends import Emissary, Jev, OpenAI
 
 CASES = {
     "refund": "The customer asks for a refund",
@@ -103,8 +103,8 @@ def test_invalid_texts_rejected_before_preparation(text):
 
 
 def test_unknown_backend_lists_supported_names():
-    with pytest.raises(ValueError, match="'emissary', 'jev'"):
-        Annotator(backend="openai", cases=CASES)
+    with pytest.raises(ValueError, match="'emissary', 'jev', 'openai'"):
+        Annotator(backend="unknown", cases=CASES)
 
 
 def test_non_backend_object_rejected():
@@ -115,8 +115,10 @@ def test_non_backend_object_rejected():
 def test_named_backends_build_without_network_or_credentials(monkeypatch):
     monkeypatch.delenv("JEV_TOKEN", raising=False)
     monkeypatch.delenv("EMISSARY_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     assert isinstance(Annotator(backend="jev", cases=CASES)._backend, Jev)
     assert isinstance(Annotator(backend="emissary", cases=CASES)._backend, Emissary)
+    assert isinstance(Annotator(backend="openai", cases=CASES)._backend, OpenAI)
 
 
 def test_configuration_is_independent_of_the_original_mapping():

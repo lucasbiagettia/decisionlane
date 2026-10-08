@@ -1,0 +1,30 @@
+{
+  "note": "Simulated Decisions contract, not a provider observation. Matches the benchmark's Choice request and response schema.",
+  "request": {
+    "model": "gpt-6-luna",
+    "input": "The home team won the final match.",
+    "questions": [{
+      "type": "choice",
+      "name": "classification",
+      "instructions": "Classify the input text into exactly one of the allowed labels. Use the class descriptions as the decision rubric. Do not invent labels.",
+      "choices": [
+        {"value": "World", "description": "International news and politics"},
+        {"value": "Sports", "description": "Sporting events and results"}
+      ]
+    }]
+  },
+  "response": {
+    "model": "gpt-6-luna",
+    "answers": [{
+      "type": "choice",
+      "name": "classification",
+      "choice": "Sports",
+      "confidence": 0.42,
+      "probabilities": [
+        {"value": "Sports", "probability": 0.75},
+        {"value": "World", "probability": 0.25}
+      ]
+    }],
+    "usage": {"input_tokens": 300, "output_tokens": 0, "total_tokens": 300}
+  }
+}
