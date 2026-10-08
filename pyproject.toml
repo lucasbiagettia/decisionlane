@@ -13,7 +13,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Lucas Biagetti" }]
 requires-python = ">=3.10"
 dependencies = ["requests>=2.28"]
-keywords = ["classification", "zero-shot", "text-classification", "jev", "emissary"]
+keywords = ["classification", "zero-shot", "text-classification", "jev", "emissary", "openai"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",

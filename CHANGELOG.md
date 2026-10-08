@@ -6,3 +6,5 @@
 - `Decision` result with optional probabilities, provider confidence and explanation.
 - `DecisionModel` protocol for custom backends.
 - Zero-shot adapters for Jev (TypeSafe Choice) and Emissary (routing experiment).
+- OpenAI zero-shot adapter using Decisions Choice, with the same `Annotator` and
+  `Decision` interface as Jev and Emissary.

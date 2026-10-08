@@ -13,8 +13,11 @@ Supported backends in v0.1:
 | ---------- | ----------------------------------------------------- | ------------------ |
 | `jev`      | [TypeSafe](https://docs.typesafe.ai) Choice question   | `JEV_TOKEN`        |
 | `emissary` | [Emissary](https://docs.withemissary.com) routing experiment | `EMISSARY_API_KEY` |
+| `openai`   | [OpenAI Decisions](https://developers.openai.com/api/docs/guides/decisions) Choice question | `OPENAI_API_KEY` |
 
-Both are zero-shot: you provide case descriptions, never labeled examples.
+All three are zero-shot: you provide case descriptions, never labeled examples.
+They share the same `Annotator`, `batch()` and `Decision` interface; switching
+providers only requires changing the backend.
 
 ## Installation
 
@@ -31,6 +34,7 @@ Set the variable for the backend you use:
 ```bash
 export JEV_TOKEN=...
 export EMISSARY_API_KEY=...
+export OPENAI_API_KEY=...
 ```
 
 decisionlane never loads `.env` files. If you keep secrets in one, load it in
@@ -43,7 +47,7 @@ classification. Keys can also be passed explicitly to the adapters (see below).
 from decisionlane import Annotator
 
 annotator = Annotator(
-    backend="jev",  # or "emissary"
+    backend="jev",  # or "emissary" or "openai"
     cases={
         "refund": "The customer asks for a refund",
         "card_lost": "Reports a lost or stolen card",
@@ -76,7 +80,7 @@ Pass an adapter instead of a name to set model, key or timeout:
 
 ```python
 from decisionlane import Annotator
-from decisionlane.backends import Emissary, Jev
+from decisionlane.backends import Emissary, Jev, OpenAI
 
 annotator = Annotator(
     backend=Jev(model="jev-1.13.0", api_key="...", timeout=30.0),
@@ -87,12 +91,14 @@ annotator = Annotator(
 )
 
 emissary = Emissary(api_key="...", timeout=120.0, experiment_name="sentiment")
+openai = OpenAI(model="gpt-6-luna", api_key="...", timeout=120.0)
 ```
 
 | Adapter    | Options                                                        | Defaults                                         |
 | ---------- | -------------------------------------------------------------- | ------------------------------------------------ |
 | `Jev`      | `model`, `api_key`, `timeout`, `session`                       | `jev-1.13.0`, `JEV_TOKEN`, 30 s                  |
 | `Emissary` | `api_key`, `timeout`, `experiment_name`, `session`             | `EMISSARY_API_KEY`, 120 s, `decisionlane-<random>` |
+| `OpenAI`   | `model`, `api_key`, `timeout`, `session`                        | `gpt-6-luna`, `OPENAI_API_KEY`, 120 s              |
 
 If you pass your own `requests.Session`, the adapter uses it and never closes
 it. An adapter you construct yourself is yours to close (`adapter.close()`);
@@ -106,7 +112,7 @@ adapter instance per `Annotator`.
 class Decision:
     label: str                                  # always one of your case ids
     probabilities: Mapping[str, float] | None   # over exactly your case ids, or None
-    backend: str                                # "jev", "emissary", ...
+    backend: str                                # "jev", "emissary", "openai", ...
     model: str | None                           # model/resource identifier reported by the provider
     request_id: str | None                      # provider request id, when available
     latency_ms: float
@@ -124,13 +130,14 @@ What each field means:
   within an absolute tolerance of `1e-4`; anything else raises `ResponseError`.
 - **`selected_probability`** is derived from `probabilities`, so the two cannot
   disagree. It is `None` when there is no distribution.
-- **`provider_confidence`** is Jev's native confidence, which describes how
-  concentrated the distribution is. It is *not* the probability of the chosen
-  label. Emissary does not return one (`None`).
-- **`explanation`** is `None` for both current backends: neither returns an
+- **`provider_confidence`** is the native confidence returned by Jev or OpenAI,
+  kept separately from the probability of the chosen label. Jev's score describes
+  how concentrated the distribution is; native confidence has provider-specific
+  meaning. Emissary does not return one (`None`).
+- **`explanation`** is `None` for all three current backends: none returns an
   explanation in the classification response. decisionlane never generates one.
-- **`model`**: for Jev, the resolved model returned by the API (which may differ
-  from the requested alias). For Emissary, the `experiment_id/version` created
+- **`model`**: for Jev and OpenAI, the resolved model returned by the API (which
+  may differ from the requested alias). For Emissary, the `experiment_id/version` created
   for this annotator. A response reporting a different model is rejected.
 - **`latency_ms`** is measured with a monotonic clock from the start of the
   backend's `predict` call until the normalized decision is built. It includes
@@ -139,7 +146,7 @@ What each field means:
 
 ### Ties
 
-- **Jev** returns a chosen label. When several labels share the maximum
+- **Jev and OpenAI** return a chosen label. When several labels share the maximum
   probability, the provider's choice is kept. A choice that is not a maximum is
   rejected.
 - **Emissary** returns only a distribution. The label is the highest-probability
@@ -196,6 +203,28 @@ the next call tries again, and a timed-out attempt may still have created an
 experiment on the provider side. Classification uses `data_format="probs"`.
 The provider's limits apply; no local limit on the number of cases is imposed.
 
+### OpenAI
+
+Each text is sent to `POST https://api.openai.com/v1/decisions` as `input`, with
+one named `classification` question of type `choice`. Your case ids become
+choice values and their descriptions become the rubric, using the same request
+and response contract as `llm-classifier-bench`'s OpenAI Decisions zero-shot
+classifier. Preparation is local and consumes no labeled examples.
+
+The default model is `gpt-6-luna`. This uses the
+[Decisions API](https://developers.openai.com/api/docs/guides/decisions) through
+`requests`, so no OpenAI SDK dependency is needed. `OPENAI_ORG_ID` and
+`OPENAI_PROJECT_ID`, when set, are sent as organization and project headers.
+Model and timeout are configured on the adapter, as with Jev. Choice accepts at
+most 255 cases; larger configurations are rejected before any request. The
+provider's other limits apply.
+
+The returned probabilities are validated and ordered by your configured cases.
+The provider's choice is preserved, including exact ties. A `refusal` answer
+raises `ResponseError` with a sanitized refusal message, without inventing a
+label or probabilities; a batch stops at that text. HTTP and transport failures
+raise `BackendError`, as with the other adapters. No automatic retries are made.
+
 ## Custom backends
 
 Anything with these two methods can be passed as `backend`:
@@ -220,8 +249,8 @@ This is the `decisionlane.DecisionModel` protocol; no subclassing is required.
 
 ## Scope of v0.1
 
-Included: zero-shot, single-label, closed-set classification of text with Jev
-or Emissary, one text at a time.
+Included: zero-shot, single-label, closed-set classification of text with Jev,
+Emissary or OpenAI Decisions, one text at a time.
 
 Not included: other providers, training or few-shot examples, evaluation or
 calibration, thresholds or abstention, caching, persistence, async or

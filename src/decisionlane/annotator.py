@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from typing import Mapping, Sequence
 
-from .backends import Emissary, Jev
+from .backends import Emissary, Jev, OpenAI
 from .core import Decision, DecisionModel, ResponseError, check_probabilities, check_unit_interval
 
-SUPPORTED_BACKENDS = ("emissary", "jev")
+SUPPORTED_BACKENDS = ("emissary", "jev", "openai")
 
 
 class Annotator:
     """Single-label, closed-set zero-shot classifier over user-defined cases.
 
-    ``backend`` is ``"jev"``, ``"emissary"`` or any object implementing
+    ``backend`` is ``"jev"``, ``"emissary"``, ``"openai"`` or any object implementing
     ``DecisionModel``. Construction is local: no network, no credentials.
     The backend is prepared lazily before the first classification and only
     once after a successful preparation.
@@ -89,6 +89,8 @@ def _resolve(name: str) -> DecisionModel:
         return Jev()
     if name == "emissary":
         return Emissary()
+    if name == "openai":
+        return OpenAI()
     supported = ", ".join(repr(item) for item in SUPPORTED_BACKENDS)
     raise ValueError(f"Unknown backend {name!r}. Supported backends: {supported}.")
 
